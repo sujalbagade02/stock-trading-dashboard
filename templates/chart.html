@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ company }} Chart</title>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="container">
+    <h2>{{ company }} Stock Price Chart</h2>
+
+    <a href="/dashboard">⬅ Back to Dashboard</a>
+
+    <canvas id="priceChart"></canvas>
+</div>
+
+<script type="text/javascript">
+    const dates = {{ dates | tojson | safe }};
+    const prices = {{ prices | tojson | safe }};
+
+    const ctx = document.getElementById('priceChart').getContext('2d');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: '{{ company }} Close Price',
+                data: prices,
+                borderWidth: 2,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    display: true
+                },
+                y: {
+                    display: true
+                }
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
