@@ -13,10 +13,17 @@ app.secret_key = "dev_secret_key"
 DATA_FOLDER = "data"
 
 COMPANIES = {
-    "Apple": "Apple.csv",
+"Apple": "Apple.csv",
     "Google": "Google.csv",
     "Amazon": "Amazon.csv",
-    "Netflix": "Netflix.csv"
+    "Netflix": "Netflix.csv",
+    "Facebook": "Facebook.csv",
+    "Microsoft": "Microsoft.csv",
+    "Tesla": "Tesla.csv",
+    "Uber": "Uber.csv",
+    "Walmart": "Walmart.csv",
+    "Zoom": "Zoom.csv"
+}
 }
 
 # ---------- AWS ----------
@@ -46,6 +53,15 @@ def get_all_prices():
 @app.route("/")
 def main():
     return render_template("main.html")
+
+@app.route("/about")
+def about():
+    return render_template("about.html")
+
+@app.route("/contact")
+def contact():
+    return render_template("contact.html")
+
 
 # ---------- AUTH ----------
 @app.route("/signup", methods=["GET","POST"])
