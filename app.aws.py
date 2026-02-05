@@ -37,7 +37,7 @@ users_table = dynamodb.Table("Users")
 portfolio_table = dynamodb.Table("Portfolio")
 watchlist_table = dynamodb.Table("Watchlist")
 
-SNS_TOPIC_ARN = os.environ.get("arn:aws:sns:us-east-1:537124969880:aws_stock")  # set on EC2
+SNS_TOPIC_ARN = os.environ.get("arn:aws:sns:us-east-1:741448926436:aws_topicc")  # set on EC2
 
 # ---------------- HELPERS ---------------- #
 
