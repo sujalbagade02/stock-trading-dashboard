@@ -24,23 +24,28 @@
             <td>{{ p.quantity }}</td>
             <td>{{ p.buy_price }}</td>
             <td>{{ p.current_price }}</td>
-           <td class="{% if p.pnl >= 0 %}profit{% else %}loss{% endif %}">
-    {% if p.pnl >= 0 %}
-        +{{ p.pnl }}
-    {% else %}
-        {{ p.pnl }}
-    {% endif %}
-</td>
+
+            <td class="{% if p.pnl >= 0 %}profit{% else %}loss{% endif %}">
+                {% if p.pnl >= 0 %}
+                    +{{ p.pnl }}
+                {% else %}
+                    {{ p.pnl }}
+                {% endif %}
+            </td>
 
             <td>
-                <form method="post" action="/sell/{{ p.company }}">
+                <form method="POST" action="/sell/{{ p.company }}">
                     <input type="number"
                            name="quantity"
                            min="1"
                            max="{{ p.quantity }}"
                            value="1"
                            required>
-     <input type="hidden" name="sell_price" value="{{ p.current_price }}">                       
+
+                    <input type="hidden"
+                           name="sell_price"
+                           value="{{ p.current_price }}">
+
                     <button type="submit">Sell</button>
                 </form>
             </td>
@@ -48,6 +53,7 @@
         {% endfor %}
     </table>
     {% else %}
-       <p>No stocks purchased yet.</p>
+        <p>No stocks purchased yet.</p>
     {% endif %}
 </div>
+
