@@ -1,60 +1,51 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
-
-
 <div class="container">
     <h2>Welcome {{ user }}</h2>
 
-  <div class="top-links">
-    <a href="/watchlist">My Watchlist</a> |
-    <a href="/portfolio">My Portfolio</a> |
-    <a href="/logout">Logout</a>
-</div>
-
-
+    <div class="top-links">
+        <a href="/watchlist">My Watchlist</a> |
+        <a href="/portfolio">My Portfolio</a> |
+        <a href="/logout">Logout</a>
+    </div>
 
     <p><b>Balance:</b> {{ balance }}</p>
 
+    <table>
+        <tr>
+            <th>Company</th>
+            <th>Price</th>
+            <th>Date</th>
+            <th>Watchlist</th>
+            <th>Buy</th>
+            <th>Chart</th>
+        </tr>
 
-   <table>
-<tr>
-    <th>Company</th>
-    <th>Price</th>
-    <th>Date</th>
-    <th>Watchlist</th>
-    <th>Buy</th>
-    <th>Chart</th>
-</tr>
+        {% for stock in stocks %}
+        <tr>
+            <td>{{ stock.company }}</td>
+            <td>{{ stock.price }}</td>
+            <td>{{ stock.date }}</td>
 
-{% for stock in stocks %}
-<tr>
-    <td>{{ stock.company }}</td>
-    <td>{{ stock.price }}</td>
-    <td>{{ stock.date }}</td>
+            <td>
+                {% if stock.company in user_watchlist %}
+                    Added
+                {% else %}
+                    <a href="/add_to_watchlist/{{ stock.company }}">Add</a>
+                {% endif %}
+            </td>
 
-    <td>
-        {% if stock.company in user_watchlist %}
-            Added
-        {% else %}
-            <a href="/add_to_watchlist/{{ stock.company }}">Add</a>
-        {% endif %}
-    </td>
+            <td>
+                <form method="POST" action="/buy/{{ stock.company }}">
+                    <input type="number" name="quantity" value="1" min="1" required>
+                    <button type="submit">Buy</button>
+                </form>
+            </td>
 
-    <td>
-        <form method="POST" action="/buy/{{ stock.company }}">
-            <input type="number" name="quantity" value="1" min="1">
-            <button type="submit">Buy</button>
-        </form>
-    </td>
-
-    <td>
-        <a href="/chart/{{ stock.company }}">View</a>
-    </td>
-</tr>
-{% endfor %}
-</table>
-
-    
-
+            <td>
+                <a href="/chart/{{ stock.company }}">View Chart</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
 </div>
-
