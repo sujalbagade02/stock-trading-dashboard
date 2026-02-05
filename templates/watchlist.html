@@ -1,11 +1,10 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
-
 <div class="container">
     <h2>{{ user }}'s Watchlist</h2>
 
     <p><b>Balance:</b> {{ balance }}</p>
-    
+
     <a href="/dashboard">⬅ Back to Dashboard</a>
 
     {% if watchlist %}
@@ -16,17 +15,23 @@
             <th>Date</th>
             <th>Action</th>
         </tr>
+
         {% for stock in watchlist %}
         <tr>
             <td>{{ stock.company }}</td>
             <td>{{ stock.price }}</td>
             <td>{{ stock.date }}</td>
-             <td>
-            <form method="post" action="/buy/{{ stock.company }}">
-                <input type="number" name="quantity" min="1" value="1" required>
-                <button type="submit">Buy</button>
-            </form>
-        </td>
+
+            <td>
+                <form method="POST" action="/buy/{{ stock.company }}">
+                    <input type="number"
+                           name="quantity"
+                           min="1"
+                           value="1"
+                           required>
+                    <button type="submit">Buy</button>
+                </form>
+            </td>
         </tr>
         {% endfor %}
     </table>
