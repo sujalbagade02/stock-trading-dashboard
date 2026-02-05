@@ -14,8 +14,7 @@
             <th>Quantity</th>
             <th>Buy Price</th>
             <th>Current Price</th>
-            <th>Profit / Loss</th>
-            <th>Action</th>
+            <th>P/L</th>
         </tr>
 
         {% for p in portfolio %}
@@ -24,30 +23,8 @@
             <td>{{ p.quantity }}</td>
             <td>{{ p.buy_price }}</td>
             <td>{{ p.current_price }}</td>
-
             <td class="{% if p.pnl >= 0 %}profit{% else %}loss{% endif %}">
-                {% if p.pnl >= 0 %}
-                    +{{ p.pnl }}
-                {% else %}
-                    {{ p.pnl }}
-                {% endif %}
-            </td>
-
-            <td>
-                <form method="POST" action="/sell/{{ p.company }}">
-                    <input type="number"
-                           name="quantity"
-                           min="1"
-                           max="{{ p.quantity }}"
-                           value="1"
-                           required>
-
-                    <input type="hidden"
-                           name="sell_price"
-                           value="{{ p.current_price }}">
-
-                    <button type="submit">Sell</button>
-                </form>
+                {{ p.pnl }}
             </td>
         </tr>
         {% endfor %}
@@ -56,4 +33,3 @@
         <p>No stocks purchased yet.</p>
     {% endif %}
 </div>
-
