@@ -1,8 +1,12 @@
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, render_template, request, redirect, url_for, session
 import pandas as pd
 import os
+import boto3
+from werkzeug.security import generate_password_hash, check_password_hash
+from boto3.dynamodb.conditions import Key
 
 app = Flask(__name__)
+application = app
 app.secret_key = "dev_secret_key"
 
 DATA_FOLDER = "data"
@@ -14,130 +18,90 @@ COMPANIES = {
     "Netflix": "Netflix.csv"
 }
 
-# ---------------- HELPERS ----------------
-def latest_price(company):
-    df = pd.read_csv(os.path.join(DATA_FOLDER, COMPANIES[company]))
-    row = df.iloc[-1]
-    return float(row["Close"]), row["Date"]
+# ---------- AWS ----------
+dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+users_table = dynamodb.Table("Users")
+portfolio_table = dynamodb.Table("Portfolio")
+watchlist_table = dynamodb.Table("Watchlist")
 
-def all_prices():
+# ---------- HELPERS ----------
+def get_latest_price(company):
+    try:
+        df = pd.read_csv(os.path.join(DATA_FOLDER, COMPANIES[company]))
+        row = df.iloc[-1]
+        return round(float(row["Close"]), 2), row["Date"]
+    except Exception as e:
+        print("PRICE ERROR:", e)
+        return None, None
+
+def get_all_prices():
     data = []
     for c in COMPANIES:
-        price, date = latest_price(c)
-        data.append({"company": c, "price": round(price, 2), "date": date})
+        price, date = get_latest_price(c)
+        if price:
+            data.append({"company": c, "price": price, "date": date})
     return data
 
-# ---------------- MAIN ----------------
+# ---------- MAIN ----------
 @app.route("/")
 def main():
     return render_template("main.html")
 
-# ---------------- AUTH ----------------
+# ---------- AUTH ----------
 @app.route("/signup", methods=["GET","POST"])
 def signup():
     if request.method == "POST":
-        session["user"] = request.form["name"]
-        session["email"] = request.form["email"]
-        session["balance"] = 100000
-        session["portfolio"] = {}
-        session["watchlist"] = []
-        return redirect("/dashboard")
+        users_table.put_item(Item={
+            "email": request.form["email"],
+            "name": request.form["name"],
+            "password": generate_password_hash(request.form["password"]),
+            "balance": 100000
+        })
+        return redirect("/login")
     return render_template("signup.html")
 
 @app.route("/login", methods=["GET","POST"])
 def login():
     if request.method == "POST":
-        session["user"] = request.form["email"].split("@")[0]
-        session["email"] = request.form["email"]
-        session.setdefault("balance", 100000)
-        session.setdefault("portfolio", {})
-        session.setdefault("watchlist", [])
-        return redirect("/dashboard")
+        user = users_table.get_item(
+            Key={"email": request.form["email"]}
+        ).get("Item")
+
+        if user and check_password_hash(user["password"], request.form["password"]):
+            session["email"] = user["email"]
+            session["user"] = user["name"]
+            return redirect("/dashboard")
+        return "Invalid credentials"
+
     return render_template("login.html")
 
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect("/")
+    return redirect("/login")
 
-# ---------------- DASHBOARD ----------------
+# ---------- DASHBOARD ----------
 @app.route("/dashboard")
 def dashboard():
-    if "user" not in session:
+    if "email" not in session:
         return redirect("/login")
+
+    stocks = get_all_prices()
+    user = users_table.get_item(Key={"email": session["email"]}).get("Item")
+
+    wl = watchlist_table.query(
+        KeyConditionExpression=Key("email").eq(session["email"])
+    ).get("Items", [])
+
+    watchlist = [i["company"] for i in wl]
 
     return render_template(
         "dashboard.html",
-        stocks=all_prices(),
+        stocks=stocks,
         user=session["user"],
-        balance=session["balance"],
-        user_watchlist=session["watchlist"]
+        balance=user["balance"],
+        user_watchlist=watchlist
     )
 
-# ---------------- BUY ----------------
-@app.route("/buy/<company>", methods=["POST"])
-def buy(company):
-    qty = int(request.form["quantity"])
-    price, _ = latest_price(company)
-    total = qty * price
-
-    if total > session["balance"]:
-        return "Insufficient balance"
-
-    session["balance"] -= total
-    session["portfolio"][company] = session["portfolio"].get(company, 0) + qty
-    return redirect("/portfolio")
-
-# ---------------- PORTFOLIO ----------------
-@app.route("/portfolio")
-def portfolio():
-    prices = dict((s["company"], s["price"]) for s in all_prices())
-    view = []
-
-    for company, qty in session["portfolio"].items():
-        view.append({
-            "company": company,
-            "quantity": qty,
-            "buy_price": prices[company],
-            "current_price": prices[company],
-            "pnl": 0
-        })
-
-    return render_template(
-        "portfolio.html",
-        portfolio=view,
-        balance=session["balance"],
-        user=session["user"]
-    )
-
-# ---------------- WATCHLIST ----------------
-@app.route("/add_to_watchlist/<company>")
-def add_watchlist(company):
-    if company not in session["watchlist"]:
-        session["watchlist"].append(company)
-    return redirect("/dashboard")
-
-@app.route("/watchlist")
-def watchlist():
-    prices = all_prices()
-    data = [p for p in prices if p["company"] in session["watchlist"]]
-
-    return render_template(
-        "watchlist.html",
-        watchlist=data,
-        balance=session["balance"],
-        user=session["user"]
-    )
-
-# ---------------- CHART ----------------
-@app.route("/chart/<company>")
-def chart(company):
-    df = pd.read_csv(os.path.join(DATA_FOLDER, COMPANIES[company]))
-    return render_template(
-        "chart.html",
-        company=company,
-        data=df.tail(20).to_dict("records")
-    )
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+# ---------- BUY ----------
+@app.route("/buy/<company>", methods=["]()
