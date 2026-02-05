@@ -132,34 +132,25 @@ def dashboard():
 
 # ---------------- BUY ---------------- #
 
-@app.route("/buy/<company>", methods=["POST"])
+@app.route('/buy/<company>', methods=['POST'])
 def buy_stock(company):
-    qty = int(request.form["quantity"])
-    stock = next(s for s in load_latest_prices() if s["company"] == company)
+    try:
+        qty = int(request.form.get('quantity', 1))
+        price = get_stock_price(company)
 
-    total_cost = qty * stock["price"]
-    user = get_user()
+        balance = session.get('balance', 100000)
+        total = qty * price
 
-    if user["balance"] < total_cost:
-        return "Insufficient balance"
+        if total > balance:
+            return "Insufficient balance"
 
-    users_table.update_item(
-        Key={"email": session["email"]},
-        UpdateExpression="SET balance = balance - :amt",
-        ExpressionAttributeValues={":amt": total_cost}
-    )
+        session['balance'] = balance - total
+        return redirect(url_for('dashboard'))
 
-    portfolio_table.put_item(
-        Item={
-            "user": session["email"],
-            "company": company,
-            "quantity": qty,
-            "buy_price": stock["price"]
-        }
-    )
+    except Exception as e:
+        print("BUY ERROR:", e)
+        return "Internal Server Error", 500
 
-    send_notification(f"BUY: {qty} {company} @ {stock['price']}")
-    return redirect("/portfolio")
 
 # ---------------- SELL ---------------- #
 
