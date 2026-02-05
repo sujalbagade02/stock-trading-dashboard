@@ -1,12 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, session, url_for
 import pandas as pd
 import os
-import boto3
-from werkzeug.security import generate_password_hash, check_password_hash
-from boto3.dynamodb.conditions import Key
 
 app = Flask(__name__)
-application = app
 app.secret_key = "dev_secret_key"
 
 DATA_FOLDER = "data"
@@ -18,175 +14,129 @@ COMPANIES = {
     "Netflix": "Netflix.csv"
 }
 
-# ---------- AWS ----------
-dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-users_table = dynamodb.Table("Users")
-portfolio_table = dynamodb.Table("Portfolio")
-watchlist_table = dynamodb.Table("Watchlist")
-
-# ---------- HELPERS ----------
-def get_latest_price(company):
+# ---------------- HELPERS ----------------
+def latest_price(company):
     df = pd.read_csv(os.path.join(DATA_FOLDER, COMPANIES[company]))
     row = df.iloc[-1]
-    return round(float(row["Close"]), 2), row["Date"]
+    return float(row["Close"]), row["Date"]
 
-def get_all_prices():
+def all_prices():
     data = []
     for c in COMPANIES:
-        price, date = get_latest_price(c)
-        data.append({"company": c, "price": price, "date": date})
+        price, date = latest_price(c)
+        data.append({"company": c, "price": round(price, 2), "date": date})
     return data
 
-# ---------- MAIN ----------
+# ---------------- MAIN ----------------
 @app.route("/")
 def main():
     return render_template("main.html")
 
-# ---------- AUTH ----------
+# ---------------- AUTH ----------------
 @app.route("/signup", methods=["GET","POST"])
 def signup():
     if request.method == "POST":
-        users_table.put_item(Item={
-            "email": request.form["email"],
-            "name": request.form["name"],
-            "password": generate_password_hash(request.form["password"]),
-            "balance": 100000
-        })
-        return redirect("/login")
+        session["user"] = request.form["name"]
+        session["email"] = request.form["email"]
+        session["balance"] = 100000
+        session["portfolio"] = {}
+        session["watchlist"] = []
+        return redirect("/dashboard")
     return render_template("signup.html")
 
 @app.route("/login", methods=["GET","POST"])
 def login():
     if request.method == "POST":
-        user = users_table.get_item(
-            Key={"email": request.form["email"]}
-        ).get("Item")
-
-        if user and check_password_hash(user["password"], request.form["password"]):
-            session["email"] = user["email"]
-            session["user"] = user["name"]
-            return redirect("/dashboard")
-        return "Invalid credentials"
-
+        session["user"] = request.form["email"].split("@")[0]
+        session["email"] = request.form["email"]
+        session.setdefault("balance", 100000)
+        session.setdefault("portfolio", {})
+        session.setdefault("watchlist", [])
+        return redirect("/dashboard")
     return render_template("login.html")
 
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect("/login")
+    return redirect("/")
 
-# ---------- DASHBOARD ----------
+# ---------------- DASHBOARD ----------------
 @app.route("/dashboard")
 def dashboard():
-    if "email" not in session:
+    if "user" not in session:
         return redirect("/login")
-
-    stocks = get_all_prices()
-    user = users_table.get_item(Key={"email": session["email"]}).get("Item")
-
-    wl = watchlist_table.query(
-        KeyConditionExpression=Key("email").eq(session["email"])
-    ).get("Items", [])
-
-    watchlist = [i["company"] for i in wl]
 
     return render_template(
         "dashboard.html",
-        stocks=stocks,
+        stocks=all_prices(),
         user=session["user"],
-        balance=user["balance"],
-        user_watchlist=watchlist
+        balance=session["balance"],
+        user_watchlist=session["watchlist"]
     )
 
-# ---------- BUY ----------
+# ---------------- BUY ----------------
 @app.route("/buy/<company>", methods=["POST"])
 def buy(company):
     qty = int(request.form["quantity"])
-    price, _ = get_latest_price(company)
+    price, _ = latest_price(company)
     total = qty * price
 
-    user = users_table.get_item(Key={"email": session["email"]}).get("Item")
-    if total > user["balance"]:
+    if total > session["balance"]:
         return "Insufficient balance"
 
-    users_table.update_item(
-        Key={"email": session["email"]},
-        UpdateExpression="SET balance = balance - :amt",
-        ExpressionAttributeValues={":amt": total}
-    )
-
-    portfolio_table.put_item(Item={
-        "email": session["email"],
-        "company": company,
-        "quantity": qty,
-        "buy_price": price
-    })
-
+    session["balance"] -= total
+    session["portfolio"][company] = session["portfolio"].get(company, 0) + qty
     return redirect("/portfolio")
 
-# ---------- PORTFOLIO ----------
+# ---------------- PORTFOLIO ----------------
 @app.route("/portfolio")
 def portfolio():
-    response = portfolio_table.query(
-        KeyConditionExpression=Key("email").eq(session["email"])
-    )
-
-    prices = get_all_prices()
+    prices = dict((s["company"], s["price"]) for s in all_prices())
     view = []
 
-    for p in response.get("Items", []):
-        cur = next(s["price"] for s in prices if s["company"] == p["company"])
-        pnl = round((cur - p["buy_price"]) * p["quantity"], 2)
+    for company, qty in session["portfolio"].items():
         view.append({
-            "company": p["company"],
-            "quantity": p["quantity"],
-            "buy_price": p["buy_price"],
-            "current_price": cur,
-            "pnl": pnl
+            "company": company,
+            "quantity": qty,
+            "buy_price": prices[company],
+            "current_price": prices[company],
+            "pnl": 0
         })
 
-    user = users_table.get_item(Key={"email": session["email"]}).get("Item")
     return render_template(
         "portfolio.html",
         portfolio=view,
-        balance=user["balance"],
+        balance=session["balance"],
         user=session["user"]
     )
 
-# ---------- WATCHLIST ----------
+# ---------------- WATCHLIST ----------------
 @app.route("/add_to_watchlist/<company>")
-def add_to_watchlist(company):
-    watchlist_table.put_item(Item={
-        "email": session["email"],
-        "company": company
-    })
+def add_watchlist(company):
+    if company not in session["watchlist"]:
+        session["watchlist"].append(company)
     return redirect("/dashboard")
 
 @app.route("/watchlist")
 def watchlist():
-    wl = watchlist_table.query(
-        KeyConditionExpression=Key("email").eq(session["email"])
-    ).get("Items", [])
+    prices = all_prices()
+    data = [p for p in prices if p["company"] in session["watchlist"]]
 
-    prices = get_all_prices()
-    data = [p for p in prices if p["company"] in [i["company"] for i in wl]]
-
-    user = users_table.get_item(Key={"email": session["email"]}).get("Item")
     return render_template(
         "watchlist.html",
         watchlist=data,
-        balance=user["balance"],
+        balance=session["balance"],
         user=session["user"]
     )
 
-# ---------- CHART ----------
+# ---------------- CHART ----------------
 @app.route("/chart/<company>")
 def chart(company):
     df = pd.read_csv(os.path.join(DATA_FOLDER, COMPANIES[company]))
     return render_template(
         "chart.html",
         company=company,
-        data=df.tail(30).to_dict("records")
+        data=df.tail(20).to_dict("records")
     )
 
 if __name__ == "__main__":
