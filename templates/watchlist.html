@@ -11,9 +11,9 @@
     <table>
         <tr>
             <th>Company</th>
-            <th>Latest Price</th>
+            <th>Price</th>
             <th>Date</th>
-            <th>Action</th>
+            <th>Buy</th>
         </tr>
 
         {% for stock in watchlist %}
@@ -21,14 +21,9 @@
             <td>{{ stock.company }}</td>
             <td>{{ stock.price }}</td>
             <td>{{ stock.date }}</td>
-
             <td>
                 <form method="POST" action="/buy/{{ stock.company }}">
-                    <input type="number"
-                           name="quantity"
-                           min="1"
-                           value="1"
-                           required>
+                    <input type="number" name="quantity" value="1" min="1" required>
                     <button type="submit">Buy</button>
                 </form>
             </td>
