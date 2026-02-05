@@ -16,20 +16,17 @@
     <p><b>Balance:</b> {{ balance }}</p>
 
 
-    <table>
-        <tr>
-            <th>Company</th>
-            <th>Price</th>
-            <th>Date</th>
-            <th>Action</th>
-            <th>Buy Now</th>
-            <th>Chart</th>
-            
-            
-       
-        </tr>
-    
-       {% for stock in stocks %}
+   <table>
+<tr>
+    <th>Company</th>
+    <th>Price</th>
+    <th>Date</th>
+    <th>Watchlist</th>
+    <th>Buy</th>
+    <th>Chart</th>
+</tr>
+
+{% for stock in stocks %}
 <tr>
     <td>{{ stock.company }}</td>
     <td>{{ stock.price }}</td>
@@ -39,26 +36,24 @@
         {% if stock.company in user_watchlist %}
             Added
         {% else %}
-            <a href="/add_to_watchlist/{{ stock.company }}">Add to Watchlist</a>
+            <a href="/add_to_watchlist/{{ stock.company }}">Add</a>
         {% endif %}
     </td>
 
     <td>
-       <form method="POST" action="/buy/Apple">
-    <input type="number" name="quantity" value="5" min="1">
-    <button type="submit">Buy</button>
-</form>
-
+        <form method="POST" action="/buy/{{ stock.company }}">
+            <input type="number" name="quantity" value="1" min="1">
+            <button type="submit">Buy</button>
+        </form>
     </td>
 
     <td>
-        <a href="/chart/{{ stock.company }}">View Chart</a>
+        <a href="/chart/{{ stock.company }}">View</a>
     </td>
 </tr>
 {% endfor %}
+</table>
 
-    </table>
-    
     
 
 </div>
