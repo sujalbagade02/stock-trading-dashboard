@@ -36,20 +36,29 @@ COMPANIES = {
 
 def load_latest_prices():
     prices = []
+
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    DATA_FOLDER = os.path.join(BASE_DIR, "data")
+
     for company, file in COMPANIES.items():
-        df = pd.read_csv(os.path.join(DATA_FOLDER, file))
+        file_path = os.path.join(DATA_FOLDER, file)
+        df = pd.read_csv(file_path)
+
         latest = df.iloc[-1]
+
         prices.append({
             "company": company,
             "price": round(float(latest["Close"]), 2),
             "date": latest["Date"]
         })
+
     return prices
 
 
 def get_user():
-    return users_collection.find_one({"email": session.get("user")})
-
+    if "user" not in session:
+        return None
+    return users_collection.find_one({"email": session["user"]})
 
 #  ROUTES 
 
@@ -89,7 +98,7 @@ def signup():
             "balance": 10000
         })
 
-        print("✅ USER SAVED:", email)  
+        print("USER SAVED:", email)  
 
         return redirect("/login")
 
@@ -122,19 +131,24 @@ def dashboard():
 
     user = users_collection.find_one({"email": session["user"]})
 
-    print("DASHBOARD USER:", user)  # DEBUG
-
     if not user:
-        return "User not found in DB"
+        return "User not found"
+
+    # LOAD STOCK DATA
+    stocks = load_latest_prices()
+
+    # LOAD WATCHLIST
+    user_watchlist = [
+        w["company"] for w in watchlist_collection.find({"user": session["user"]})
+    ]
 
     return render_template(
         "dashboard.html",
         user=user["name"],
         balance=user["balance"],
-        stocks=[],
-        user_watchlist=[]
+        stocks=stocks,
+        user_watchlist=user_watchlist
     )
-
 
 #  BUY 
 
@@ -169,7 +183,13 @@ def buy_stock(company):
 
 @app.route("/portfolio")
 def portfolio_page():
+    if "user" not in session:
+        return redirect("/login")
+
     user = get_user()
+
+    if not user:
+        return redirect("/login")
 
     user_portfolio = list(portfolio_collection.find({"user": session["user"]}))
     prices = load_latest_prices()
@@ -177,18 +197,25 @@ def portfolio_page():
     portfolio_view = []
 
     for p in user_portfolio:
-        stock_price = next(s["price"] for s in prices if s["company"] == p["company"])
-        current_price = round(stock_price * random.uniform(0.95, 1.05), 2)
+     stock_price = next(
+        (s["price"] for s in prices if s["company"] == p["company"]),
+        None
+    )
 
-        pnl = round((current_price - p["buy_price"]) * p["quantity"], 2)
+     if stock_price is None:
+         continue
 
-        portfolio_view.append({
-            "company": p["company"],
-            "quantity": p["quantity"],
-            "buy_price": p["buy_price"],
-            "current_price": current_price,
-            "pnl": pnl
-        })
+    current_price = round(stock_price * random.uniform(0.95, 1.05), 2)
+
+    pnl = round((current_price - p["buy_price"]) * p["quantity"], 2)
+
+    portfolio_view.append({
+        "company": p["company"],
+        "quantity": p["quantity"],
+        "buy_price": p["buy_price"],
+        "current_price": current_price,
+        "pnl": pnl
+    }) 
 
     return render_template(
         "portfolio.html",
@@ -196,6 +223,7 @@ def portfolio_page():
         balance=user["balance"],
         user=user["name"]
     )
+
 
 
 #  WATCHLIST
