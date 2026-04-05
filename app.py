@@ -73,52 +73,66 @@ def contact():
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
+        name = request.form["name"]
+        email = request.form["email"]
+        password = generate_password_hash(request.form["password"])
+
+        # Check if user already exists
+        if users_collection.find_one({"email": email}):
+            return "User already exists!"
+
+        # Insert into MongoDB
         users_collection.insert_one({
-            "name": request.form["name"],
-            "email": request.form["email"],
-            "password": generate_password_hash(request.form["password"]),
-            "balance": 100000
+            "name": name,
+            "email": email,
+            "password": password,
+            "balance": 10000
         })
-        return redirect(url_for("login"))
+
+        print("✅ USER SAVED:", email)  
+
+        return redirect("/login")
 
     return render_template("signup.html")
-
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        user = users_collection.find_one({"email": request.form["email"]})
+        email = request.form["email"]
+        password = request.form["password"]
 
-        if user and check_password_hash(user["password"], request.form["password"]):
-            session["user"] = user["email"]
-            return redirect(url_for("dashboard"))
+        user = users_collection.find_one({"email": email})
 
-        return "Invalid login"
+        print("LOGIN USER:", user) 
+
+        if user and check_password_hash(user["password"], password):
+            session["user"] = email
+            return redirect("/dashboard")
+        else:
+            return "Invalid credentials"
 
     return render_template("login.html")
 
 
 # DASHBOARD
-
 @app.route("/dashboard")
 def dashboard():
     if "user" not in session:
-        return redirect(url_for("login"))
+        return redirect("/login")
 
-    user = get_user()
+    user = users_collection.find_one({"email": session["user"]})
 
-    stocks = load_latest_prices()
+    print("DASHBOARD USER:", user)  # DEBUG
 
-    user_watchlist = [
-        w["company"] for w in watchlist_collection.find({"user": session["user"]})
-    ]
+    if not user:
+        return "User not found in DB"
 
     return render_template(
         "dashboard.html",
-        stocks=stocks,
         user=user["name"],
         balance=user["balance"],
-        user_watchlist=user_watchlist
+        stocks=[],
+        user_watchlist=[]
     )
 
 
