@@ -1,5 +1,7 @@
 Flask
-gunicorn
 pandas
+pymongo
+dnspython
+gunicorn
+werkzeug
 numpy
-Werkzeug
