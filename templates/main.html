@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Real Time Stock Trading</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+
+<video autoplay muted loop id="bg-video">
+    <source src="{{ url_for('static', filename='videos/bg.mp4') }}" type="video/mp4">
+</video>
+
+<div class="overlay"></div>
+
+<nav>
+    <div class="nav-left"><span class="logo">StockTrade</span></div>
+    <div class="nav-right">
+        <a href="{{ url_for('about') }}">About</a>
+        <a href="{{ url_for('contact') }}">Contact</a>
+        <a href="/login">Login</a>
+        <a href="/signup" class="btn-nav">Sign Up</a>
+    </div>
+</nav>
+
+<div class="cont">
+    <h1>Welcome to Real Time Stock Trading Platform</h1>
+    <p>Trade stocks in real time with virtual money.</p>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,163 @@
+/* ===== PAGE BACKGROUND ===== */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: url("/static/css/dashboard.jpg.png") no-repeat center center/cover;
+    min-height: 100vh;
+    position: relative;
+}
+
+/* DARK OVERLAY */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: -1;
+}
+
+/* ===== MAIN CARD ===== */
+/* ===== MAIN CARD (STRONGER GLASS EFFECT) ===== */
+.container {
+    width: 80%;
+    margin: 50px auto;
+    padding: 25px 30px;
+
+    background: rgba(255, 255, 255, 0.75);  /* more white */
+    backdrop-filter: blur(2px);           /* stronger blur */
+    /* -webkit-backdrop-filter: blur(50px);  */
+
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+} 
+
+.container:hover {
+    transform: translateY(-2px);
+    transition: 0.3s ease;
+}
+
+/* ===== TOP LINKS ===== */
+.top-links {
+    margin-bottom: 12px;
+}
+
+.top-links a {
+    font-weight: 700;          /* BOLD */
+    color: black;
+    margin-right: 8px;
+    font-size: 15px;
+}
+
+.top-links a:hover {
+    color: black;
+    text-decoration: underline;
+}
+
+
+/* ===== HEADINGS ===== */
+h1, h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #111;
+    font-weight: 800;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.6);
+}
+
+/* ===== TABLE ===== */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th {
+    background-color: #0d6efd;
+    color: white;
+    padding: 12px;
+    font-size: 14px;
+}
+
+td {
+    padding: 11px;
+    border-bottom: 1px solid #e0e0e0;
+    text-align: center;
+    font-size: 14px;
+}
+
+tr:hover td {
+    background-color: #f1f5ff;
+}
+
+/* ===== LINKS ===== */
+a {
+    text-decoration: none;
+    color: #0b0c0c;
+    font-weight: 500;
+    
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* ===== BUTTONS ===== */
+button {
+    padding: 6px 12px;
+    background-color: #0d6efd;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+button:hover {
+    background-color: #084298;
+}
+
+/* ===== INPUTS ===== */
+input[type="number"],
+input[type="text"] {
+    width: 60px;
+    padding: 4px;
+    font-size: 13px;
+    text-align: center;
+}
+
+/* ===== PROFIT / LOSS ===== */
+.profit {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.loss {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+/* ===== BACK LINK ===== */
+.back-link {
+    display: inline-block;
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .container {
+        width: 95%;
+        padding: 20px;
+    }
+
+    table {
+        font-size: 12px;
+    }
+
+    th, td {
+        padding: 8px;
+    }
+}
