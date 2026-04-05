@@ -4,7 +4,7 @@
     <h2>{{ user }}'s Portfolio</h2>
 
     <p><b>Balance:</b> {{ balance }}</p>
-    <a href="/dashboard">⬅ Back to Dashboard</a>
+   <a href="{{ url_for('dashboard') }}">⬅ Back to Dashboard</a>
 
     {% if portfolio %}
     <table>
@@ -27,10 +27,14 @@
                 {{ p.pnl }}
             </td>
             <td>
-                <form action="/sell/{{ p.company }}" method="post">
-                    <input type="number" name="quantity" min="1" max="{{ p.quantity }}" required>
-                    <button type="submit">Sell</button>
-                </form>
+               <form action="{{ url_for('sell_stock', company=p.company) }}" method="post">
+       <input type="number" name="quantity" min="1" max="{{ p.quantity }}" required>
+    
+   
+       <input type="hidden" name="sell_price" value="{{ p.current_price }}">
+    
+       <button type="submit">Sell</button>
+</form>
             </td>
         </tr>
         {% endfor %}

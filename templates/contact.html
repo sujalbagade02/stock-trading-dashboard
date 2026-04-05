@@ -6,10 +6,10 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/contact.css') }}">
 </head>
 <body>
-
+    
 <nav>
-    <a href="/">Home</a>
-    <a href="/about">About</a>
+    <a href="{{ url_for('main') }}">Home</a>
+    <a href="{{ url_for('about') }}">About</a>
 </nav>
 
 <section class="contact-container">

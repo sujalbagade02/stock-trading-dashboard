@@ -4,9 +4,9 @@
     <h2>Welcome {{ user }}</h2>
 
     <div class="top-links">
-        <a href="/watchlist">My Watchlist</a> |
-        <a href="/portfolio">My Portfolio</a> |
-        <a href="/logout">Logout</a>
+       <a href="{{ url_for('watchlist') }}">My Watchlist</a>|
+       <a href="{{ url_for('portfolio') }}">My Portfolio</a>|
+    <a href="{{ url_for('logout') }}">Logout</a>
     </div>
 
     <p><b>Balance:</b> {{ balance }}</p>
@@ -31,19 +31,19 @@
                 {% if stock.company in user_watchlist %}
                     Added
                 {% else %}
-                    <a href="/add_to_watchlist/{{ stock.company }}">Add</a>
+                    <a href="{{ url_for('add_to_watchlist', company=stock.company) }}">Add</a>
                 {% endif %}
             </td>
 
             <td>
-                <form method="POST" action="/buy/{{ stock.company }}">
+                <form method="POST" action="{{ url_for('buy', company=stock.company) }}">
                     <input type="number" name="quantity" value="1" min="1" required>
                     <button type="submit">Buy</button>
                 </form>
             </td>
 
             <td>
-                <a href="/chart/{{ stock.company }}">View Chart</a>
+                <a href="{{ url_for('chart', company=stock.company) }}">View Chart</a>
             </td>
         </tr>
         {% endfor %}

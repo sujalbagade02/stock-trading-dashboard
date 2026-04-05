@@ -5,7 +5,7 @@
 
     <p><b>Balance:</b> {{ balance }}</p>
 
-    <a href="/dashboard">⬅ Back to Dashboard</a>
+    <a href="{{ url_for('dashboard') }}">⬅ Back to Dashboard</a>
 
     {% if watchlist %}
     <table>
@@ -22,7 +22,7 @@
             <td>{{ stock.price }}</td>
             <td>{{ stock.date }}</td>
             <td>
-                <form method="POST" action="/buy/{{ stock.company }}">
+                  <form method="POST" action="{{ url_for('buy_stock', company=stock.company) }}">
                     <input type="number" name="quantity" value="1" min="1" required>
                     <button type="submit">Buy</button>
                 </form>
