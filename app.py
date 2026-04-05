@@ -92,9 +92,13 @@ def dashboard():
     if "user" not in session:
         return redirect(url_for("login"))
 
+    user = get_user()
+
+    if not user:  
+        return redirect(url_for("login"))
+
     stocks = load_latest_prices()
     user_watchlist = [w["company"] for w in watchlists if w["user"] == session["user"]]
-    user = get_user()
 
     return render_template(
         "dashboard.html",
