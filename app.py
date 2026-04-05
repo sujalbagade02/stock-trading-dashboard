@@ -3,10 +3,20 @@ import pandas as pd
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 import random
+from pymongo import MongoClient
 
 app = Flask(__name__)
 app.secret_key = "dev_secret_key"
 
+#  MONGODB
+client = MongoClient("mongodb+srv://sujalb2004_db_user:bunNxn9nHxlaE8yv@cluster0.qsyb4jn.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+db = client["stock_app"]
+
+users_collection = db["users"]
+watchlist_collection = db["watchlist"]
+portfolio_collection = db["portfolio"]
+
+#  DATA 
 DATA_FOLDER = "data"
 
 COMPANIES = {
@@ -22,12 +32,7 @@ COMPANIES = {
     "Zoom": "Zoom.csv"
 }
 
-# In-memory storage
-users = []
-watchlists = []
-portfolio = []
-
-#  HELPERS 
+# HELPERS
 
 def load_latest_prices():
     prices = []
@@ -43,7 +48,8 @@ def load_latest_prices():
 
 
 def get_user():
-    return next((u for u in users if u["email"] == session.get("user")), None)
+    return users_collection.find_one({"email": session.get("user")})
+
 
 #  ROUTES 
 
@@ -67,24 +73,24 @@ def contact():
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
-        users.append({
-            "id": len(users) + 1,
+        users_collection.insert_one({
             "name": request.form["name"],
             "email": request.form["email"],
             "password": generate_password_hash(request.form["password"]),
             "balance": 100000
         })
         return redirect(url_for("login"))
+
     return render_template("signup.html")
 
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        user = next((u for u in users if u["email"] == request.form["email"]), None)
+        user = users_collection.find_one({"email": request.form["email"]})
 
         if user and check_password_hash(user["password"], request.form["password"]):
-            session["user"] = user["email"]   
+            session["user"] = user["email"]
             return redirect(url_for("dashboard"))
 
         return "Invalid login"
@@ -92,7 +98,7 @@ def login():
     return render_template("login.html")
 
 
-#  DASHBOARD
+# DASHBOARD
 
 @app.route("/dashboard")
 def dashboard():
@@ -101,11 +107,11 @@ def dashboard():
 
     user = get_user()
 
-    if not user:   
-        return redirect(url_for("login"))
-
     stocks = load_latest_prices()
-    user_watchlist = [w["company"] for w in watchlists if w["user"] == session["user"]]
+
+    user_watchlist = [
+        w["company"] for w in watchlist_collection.find({"user": session["user"]})
+    ]
 
     return render_template(
         "dashboard.html",
@@ -120,24 +126,22 @@ def dashboard():
 
 @app.route("/buy/<company>", methods=["POST"])
 def buy_stock(company):
-    if "user" not in session:
-        return redirect(url_for("login"))
-
     user = get_user()
-    if not user:
-        return redirect(url_for("login"))
 
     qty = int(request.form["quantity"])
-
     stock = next(s for s in load_latest_prices() if s["company"] == company)
+
     total_cost = qty * stock["price"]
 
     if user["balance"] < total_cost:
         return "Insufficient balance"
 
-    user["balance"] -= total_cost
+    users_collection.update_one(
+        {"email": session["user"]},
+        {"$inc": {"balance": -total_cost}}
+    )
 
-    portfolio.append({
+    portfolio_collection.insert_one({
         "user": session["user"],
         "company": company,
         "quantity": qty,
@@ -147,52 +151,15 @@ def buy_stock(company):
     return redirect(url_for("portfolio_page"))
 
 
-#SELL
-
-@app.route("/sell/<company>", methods=["POST"])
-def sell_stock(company):
-    if "user" not in session:
-        return redirect(url_for("login"))
-
-    user = get_user()
-    if not user:
-        return redirect(url_for("login"))
-
-    qty_to_sell = int(request.form["quantity"])
-    sell_price = float(request.form["sell_price"]) 
-
-    holding = next(
-        (p for p in portfolio if p["user"] == session["user"] and p["company"] == company),
-        None
-    )
-
-    if not holding or holding["quantity"] < qty_to_sell:
-        return "Not enough quantity to sell"
-
-    user["balance"] += sell_price * qty_to_sell
-
-    holding["quantity"] -= qty_to_sell
-
-    if holding["quantity"] == 0:
-        portfolio.remove(holding)
-
-    return redirect(url_for("portfolio_page"))
-
-
-#  PORTFOLIO 
+# PORTFOLIO
 
 @app.route("/portfolio")
 def portfolio_page():
-    if "user" not in session:
-        return redirect(url_for("login"))
-
     user = get_user()
-    if not user:
-        return redirect(url_for("login"))
 
-    user_portfolio = [p for p in portfolio if p["user"] == session["user"]]
-
+    user_portfolio = list(portfolio_collection.find({"user": session["user"]}))
     prices = load_latest_prices()
+
     portfolio_view = []
 
     for p in user_portfolio:
@@ -217,26 +184,26 @@ def portfolio_page():
     )
 
 
-# WATCHLIST 
+#  WATCHLIST
 
 @app.route("/add_to_watchlist/<company>")
 def add_to_watchlist(company):
-    if not any(w["user"] == session["user"] and w["company"] == company for w in watchlists):
-        watchlists.append({"user": session["user"], "company": company})
+    if not watchlist_collection.find_one({"user": session["user"], "company": company}):
+        watchlist_collection.insert_one({
+            "user": session["user"],
+            "company": company
+        })
+
     return redirect(url_for("dashboard"))
 
 
 @app.route("/watchlist")
 def watchlist():
-    if "user" not in session:
-        return redirect(url_for("login"))
-
     user = get_user()
-    if not user:
-        return redirect(url_for("login"))
 
-    user_companies = [w["company"] for w in watchlists if w["user"] == session["user"]]
+    user_companies = [w["company"] for w in watchlist_collection.find({"user": session["user"]})]
     all_prices = load_latest_prices()
+
     watchlist_data = [s for s in all_prices if s["company"] in user_companies]
 
     return render_template(
@@ -247,27 +214,7 @@ def watchlist():
     )
 
 
-# chart
-
-@app.route("/chart/<company>")
-def chart(company):
-    if "user" not in session:
-        return redirect(url_for("login"))
-
-    file = COMPANIES.get(company)
-    if not file:
-        return "Company not found"
-
-    df = pd.read_csv(os.path.join(DATA_FOLDER, file))
-
-    return render_template(
-        "chart.html",
-        company=company,
-        dates=df["Date"].tolist(),
-        prices=df["Close"].tolist()
-    )
-
-
+#  LOGOUT 
 
 @app.route("/logout")
 def logout():
@@ -275,6 +222,5 @@ def logout():
     return redirect(url_for("login"))
 
 
-
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(debug=True)
