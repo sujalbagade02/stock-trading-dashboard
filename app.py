@@ -6,10 +6,10 @@ import random
 from pymongo import MongoClient
 
 app = Flask(__name__)
-app.secret_key = "dev_secret_key"
+app.secret_key = os.environ.get("SECRET_KEY")
 
 #  MONGODB
-client = MongoClient("mongodb+srv://sujalb2004_db_user:bunNxn9nHxlaE8yv@cluster0.qsyb4jn.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+client = MongoClient(os.environ.get("MONGO_URI"))
 db = client["stock_app"]
 
 users_collection = db["users"]
