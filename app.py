@@ -42,15 +42,24 @@ def load_latest_prices():
 
     for company, file in COMPANIES.items():
         file_path = os.path.join(DATA_FOLDER, file)
-        df = pd.read_csv(file_path)
 
-        latest = df.iloc[-1]
+        if not os.path.exists(file_path):
+            print(f"Missing file: {file_path}")
+            continue
 
-        prices.append({
-            "company": company,
-            "price": round(float(latest["Close"]), 2),
-            "date": latest["Date"]
-        })
+        try:
+            df = pd.read_csv(file_path)
+            latest = df.iloc[-1]
+
+            prices.append({
+                "company": company,
+                "price": round(float(latest["Close"]), 2),
+                "date": latest["Date"]
+            })
+
+        except Exception as e:
+            print(f"Error reading {file}: {e}")
+            continue
 
     return prices
 

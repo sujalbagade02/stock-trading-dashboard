@@ -4,12 +4,13 @@
     <h2>Welcome {{ user }}</h2>
 
     <div class="top-links">
-       <a href="{{ url_for('watchlist') }}">My Watchlist</a>|
-       <a href="{{ url_for('portfolio') }}">My Portfolio</a>|
-    <a href="{{ url_for('logout') }}">Logout</a>
+        <a href="{{ url_for('watchlist') }}">My Watchlist</a>
+        <a href="{{ url_for('portfolio_page') }}">My Portfolio</a>
+        <a href="{{ url_for('logout') }}">Logout</a>
     </div>
 
     <p><b>Balance:</b> {{ balance }}</p>
+</div>
 
     <table>
         <tr>
